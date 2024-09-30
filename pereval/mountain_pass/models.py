@@ -1,24 +1,15 @@
 from django.db import models
 from django.core.validators import RegexValidator
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+
 
 # Create your models here.
 
 
-class UserManager(BaseUserManager):
-    def create_user(self, email, name, password=None, **extra_fields):
-        if not email:
-            raise ValueError('Почта должна быть задана')
-        email = self.normalize_email(email)
-        user = self.model(email=email, name=name, **extra_fields)
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-
-
-class User(AbstractBaseUser):
+class User(models.Model):
     email = models.EmailField(unique=True)
-    name = models.CharField(max_length=255)
+    fam = models.CharField(max_length=255, verbose_name='Фамилия')
+    name = models.CharField(max_length=255, verbose_name='Имя')
+    otc = models.CharField(max_length=255, blank=True, null=True, verbose_name='Отчество')
 
     check_phone = RegexValidator(
         regex=r'^\+?1?\d{9,15}$',
@@ -29,15 +20,14 @@ class User(AbstractBaseUser):
         validators=[check_phone],
         max_length=17,
         blank=True,
-        null=True
+        null=True,
+        verbose_name='Телефон'
     )
 
     is_active = models.BooleanField(default=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name']
-
-    objects = UserManager()
 
     class Meta:
         verbose_name = "Пользователь"
@@ -50,7 +40,7 @@ class User(AbstractBaseUser):
 class Coords(models.Model):
     latitude = models.DecimalField(decimal_places=8, max_digits=10)
     longitude = models.DecimalField(decimal_places=8, max_digits=10)
-    height = models.IntegerField(default=0)
+    height = models.IntegerField(null=True)
 
     class Meta:
         verbose_name = "Координаты"
@@ -68,6 +58,15 @@ class PerevalAdded(models.Model):
         ("rejected", 'модерация прошла, информация не принята'),
     )
 
+    CHOICE_LEVEL = {
+        ("1A", '1А'),
+        ("1B", '1Б'),
+        ("2A", '2А'),
+        ("2B", '2Б'),
+        ("3A", '3А'),
+        ("3B", '3Б'),
+    }
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     coord = models.ForeignKey(Coords, on_delete=models.CASCADE)
 
@@ -77,12 +76,26 @@ class PerevalAdded(models.Model):
     connect = models.TextField(blank=True, null=True)
     add_time = models.DateTimeField(auto_now_add=True)
 
-    level_winter = models.CharField(max_length=4, blank=True, null=True)
-    level_summer = models.CharField(max_length=4, blank=True, null=True)
-    level_autumn = models.CharField(max_length=4, blank=True, null=True)
-    level_spring = models.CharField(max_length=4, blank=True, null=True)
+    winter = models.CharField(max_length=2, choices=CHOICE_LEVEL, default="1A",
+                              blank=True, null=True, verbose_name='Зима')
+    summer = models.CharField(max_length=2, choices=CHOICE_LEVEL, default="1A",
+                              blank=True, null=True, verbose_name='Лето')
+    autumn = models.CharField(max_length=2, choices=CHOICE_LEVEL, default="1A",
+                              blank=True, null=True, verbose_name='Осень')
+    spring = models.CharField(max_length=2, choices=CHOICE_LEVEL, default="1A",
+                              blank=True, null=True, verbose_name='Весна')
 
     status = models.CharField(max_length=30, choices=CHOICE_STATUS, default="new")
+
+    # Добавляем связь с таблицей PerevalArea
+    # Это позволит указывать, в какой географической области находится конкретный перевал.
+    # Но в итоговом JSON теле запроса с информацией о перевале этих данных нет...
+    ## area = models.ForeignKey('PerevalAreas', on_delete=models.SET_NULL, null=True, blank=True)
+
+    # Добавляем связь "многие ко многим" с таблицей SprActivitiesTypes
+    # (перевал можно пройти пешком или на лыжах, а каждый вид активности может быть применим к нескольким перевалам)
+    # Но в итоговом JSON теле запроса с информацией о перевале этих данных нет...
+    ## activities = models.ManyToManyField('SprActivitiesTypes', blank=True)
 
     class Meta:
         verbose_name = "Перевал"
@@ -93,9 +106,10 @@ class PerevalAdded(models.Model):
 
 
 class PerevalImage(models.Model):
-    pereval = models.ForeignKey(PerevalAdded, on_delete=models.CASCADE, related_name='images')
+    pereval = models.ForeignKey(PerevalAdded, on_delete=models.CASCADE,
+                                related_name='pereval_images', verbose_name='Изображения')
     date_added = models.DateTimeField(auto_now_add=True)
-    img_path = models.ImageField(upload_to='images/%Y/%m/%d/')
+    img_path = models.ImageField(upload_to='pereval_images/%Y/%m/%d/')
 
     class Meta:
         verbose_name = "Изображение"
@@ -105,16 +119,24 @@ class PerevalImage(models.Model):
         return self.img_path.name
 
 
-class PerevalArea(models.Model):
+class PerevalAreas(models.Model):
     title = models.CharField(max_length=255)
     id_parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Район перевала"
+        verbose_name_plural = "Районы перевалов"
 
     def __str__(self):
         return self.title
 
 
-class ActivityType(models.Model):
+class SprActivitiesTypes(models.Model):
     title = models.CharField(max_length=255)
+
+    class Meta:
+        verbose_name = "Вид активности"
+        verbose_name_plural = "Виды активности"
 
     def __str__(self):
         return self.title

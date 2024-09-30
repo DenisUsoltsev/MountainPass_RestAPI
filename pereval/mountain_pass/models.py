@@ -3,8 +3,6 @@ from django.core.validators import RegexValidator
 
 
 # Create your models here.
-
-
 class User(models.Model):
     email = models.EmailField(unique=True)
     fam = models.CharField(max_length=255, verbose_name='Фамилия')
@@ -51,24 +49,25 @@ class Coords(models.Model):
 
 
 class PerevalAdded(models.Model):
-    CHOICE_STATUS = (
+    CHOICE_LEVEL = [
+        ('', ''),
+        ('1А', '1А'),
+        ('1Б', '1Б'),
+        ('2А', '2А'),
+        ('2Б', '2Б'),
+        ('3А', '3А'),
+        ('3Б', '3Б'),
+    ]
+
+    CHOICE_STATUS = [
         ("new", 'новый'),
         ("pending", 'модератор взял в работу'),
         ("accepted", 'модерация прошла успешно'),
         ("rejected", 'модерация прошла, информация не принята'),
-    )
-
-    CHOICE_LEVEL = {
-        ("1A", '1А'),
-        ("1B", '1Б'),
-        ("2A", '2А'),
-        ("2B", '2Б'),
-        ("3A", '3А'),
-        ("3B", '3Б'),
-    }
+    ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    coord = models.ForeignKey(Coords, on_delete=models.CASCADE)
+    coords = models.OneToOneField(Coords, on_delete=models.CASCADE)
 
     beauty_title = models.CharField(max_length=255, blank=True, null=True)
     title = models.CharField(max_length=255)
@@ -76,13 +75,13 @@ class PerevalAdded(models.Model):
     connect = models.TextField(blank=True, null=True)
     add_time = models.DateTimeField(auto_now_add=True)
 
-    winter = models.CharField(max_length=2, choices=CHOICE_LEVEL, default="1A",
+    winter = models.CharField(max_length=2, choices=CHOICE_LEVEL, default='',
                               blank=True, null=True, verbose_name='Зима')
-    summer = models.CharField(max_length=2, choices=CHOICE_LEVEL, default="1A",
+    summer = models.CharField(max_length=2, choices=CHOICE_LEVEL, default='',
                               blank=True, null=True, verbose_name='Лето')
-    autumn = models.CharField(max_length=2, choices=CHOICE_LEVEL, default="1A",
+    autumn = models.CharField(max_length=2, choices=CHOICE_LEVEL, default='',
                               blank=True, null=True, verbose_name='Осень')
-    spring = models.CharField(max_length=2, choices=CHOICE_LEVEL, default="1A",
+    spring = models.CharField(max_length=2, choices=CHOICE_LEVEL, default='',
                               blank=True, null=True, verbose_name='Весна')
 
     status = models.CharField(max_length=30, choices=CHOICE_STATUS, default="new")
@@ -90,12 +89,12 @@ class PerevalAdded(models.Model):
     # Добавляем связь с таблицей PerevalArea
     # Это позволит указывать, в какой географической области находится конкретный перевал.
     # Но в итоговом JSON теле запроса с информацией о перевале этих данных нет...
-    ## area = models.ForeignKey('PerevalAreas', on_delete=models.SET_NULL, null=True, blank=True)
+    area = models.ForeignKey('PerevalAreas', on_delete=models.SET_NULL, null=True, blank=True)
 
     # Добавляем связь "многие ко многим" с таблицей SprActivitiesTypes
     # (перевал можно пройти пешком или на лыжах, а каждый вид активности может быть применим к нескольким перевалам)
     # Но в итоговом JSON теле запроса с информацией о перевале этих данных нет...
-    ## activities = models.ManyToManyField('SprActivitiesTypes', blank=True)
+    activities = models.ManyToManyField('SprActivitiesTypes', blank=True)
 
     class Meta:
         verbose_name = "Перевал"

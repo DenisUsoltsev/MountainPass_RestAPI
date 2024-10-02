@@ -31,3 +31,21 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
     class Meta:
         model = PerevalAdded
         fields = ['beauty_title', 'title', 'other_titles', 'connect', 'add_time', 'user', 'coords', 'images', 'level']
+
+    def create(self, validated_data):
+        # Получение и удаление вложенных данных
+        user_data = validated_data.pop('user')
+        coords_data = validated_data.pop('coords')
+        # level_data = validated_data.pop('level')
+        # images_data = validated_data.pop('images')
+
+        # Добавляем пользователя
+        user = User.objects.create(email=user_data['email'], defaults=user_data)
+
+        # Добавляем координаты
+        coords = Coords.objects.create(**coords_data)
+
+        # Добавление записи Перевала
+        pereval_added = PerevalAdded.objects.create(user=user, coords=coords, **validated_data)
+
+        return pereval_added

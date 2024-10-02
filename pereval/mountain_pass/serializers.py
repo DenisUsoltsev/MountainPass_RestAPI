@@ -36,7 +36,7 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
         # Получение и удаление вложенных данных
         user_data = validated_data.pop('user')
         coords_data = validated_data.pop('coords')
-        # level_data = validated_data.pop('level')
+        level_data = validated_data.pop('level')
         # images_data = validated_data.pop('images')
 
         # Добавляем пользователя
@@ -47,5 +47,12 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
 
         # Добавление записи Перевала
         pereval_added = PerevalAdded.objects.create(user=user, coords=coords, **validated_data)
+
+        # Обрабатываем уровни сложности
+        pereval_added.winter = level_data.get('winter', '')
+        pereval_added.summer = level_data.get('summer', '')
+        pereval_added.autumn = level_data.get('autumn', '')
+        pereval_added.spring = level_data.get('spring', '')
+        pereval_added.save()
 
         return pereval_added

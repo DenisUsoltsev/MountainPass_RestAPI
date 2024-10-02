@@ -25,5 +25,6 @@ class SubmitDataView(APIView):
             return Response({
                 "status": 400,
                 "message": "Bad Request (не корректные данные)",
+                "errors": serializer.errors,  # Отслеживаем ошибки сериализатора
                 "id": None
             }, status=status.HTTP_400_BAD_REQUEST)

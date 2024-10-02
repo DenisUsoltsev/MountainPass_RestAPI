@@ -30,6 +30,7 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PerevalAdded
+        # fields = '__all__'
         fields = ['beauty_title', 'title', 'other_titles', 'connect', 'add_time', 'user', 'coords', 'images', 'level']
 
     # Отладка - проверка какое поле вызывает ошибку
@@ -47,30 +48,38 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        # Получение и удаление вложенных данных
         user_data = validated_data.pop('user')
         coords_data = validated_data.pop('coords')
         level_data = validated_data.pop('level')
         images_data = validated_data.pop('images')
 
-        # Добавляем пользователя
-        user = User.objects.create(email=user_data['email'], defaults=user_data)
+        # Добавляем пользователя, если его нет
+        user, created = User.objects.get_or_create(
+            email=user_data['email'],
+            defaults={
+                'fam': user_data['fam'],
+                'name': user_data['name'],
+                'otc': user_data.get('otc'),
+                'phone': user_data.get('phone'),
+            }
+        )
 
         # Добавляем координаты
         coords = Coords.objects.create(**coords_data)
 
+        # Добавление уровней сложности
+        validated_data.update({
+            'winter': level_data.get('winter', ''),
+            'summer': level_data.get('summer', ''),
+            'autumn': level_data.get('autumn', ''),
+            'spring': level_data.get('spring', ''),
+        })
+
         # Добавление записи Перевала
         pereval_added = PerevalAdded.objects.create(user=user, coords=coords, **validated_data)
 
-        # Обрабатываем уровни сложности
-        pereval_added.winter = level_data.get('winter', '')
-        pereval_added.summer = level_data.get('summer', '')
-        pereval_added.autumn = level_data.get('autumn', '')
-        pereval_added.spring = level_data.get('spring', '')
-        pereval_added.save()
-
-        # Добавляем изображения
-        for image in images_data:
-            PerevalImage.objects.create(pereval=pereval_added, img_path=image['data'])
+        # Обработка изображений
+        for image_data in images_data:
+            PerevalImage.objects.create(pereval=pereval_added, img_path=image_data['data'], title=image_data['title'])
 
         return pereval_added

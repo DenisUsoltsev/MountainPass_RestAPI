@@ -17,6 +17,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+from mountain_pass.views import SubmitDataView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/', SubmitDataView.as_view(), name='submit_data'),
 ]

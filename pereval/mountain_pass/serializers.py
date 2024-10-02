@@ -1,11 +1,33 @@
 from rest_framework import serializers
-from .models import User, Coords, PerevalImage
+from .models import User, Coords, PerevalAdded, PerevalImage
 
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['email', 'fam', 'name', 'otc', 'phone']
+
+    def to_internal_value(self, data):
+        # Проверяем, существует ли пользователь с данным email
+        email = data.get('email')
+        if not email:
+            raise serializers.ValidationError({"email": "Это поле обязательно."})
+
+        # Пытаемся найти пользователя с этим email
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            # Если пользователь не найден, возвращаем данные для создания нового
+            return super().to_internal_value(data)
+
+        # Если пользователь найден, возвращаем его
+        return {
+            'email': user.email,
+            'fam': user.fam,
+            'name': user.name,
+            'otc': user.otc,
+            'phone': user.phone,
+        }
 
 
 class CoordsSerializer(serializers.ModelSerializer):
@@ -34,18 +56,18 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
         fields = ['beauty_title', 'title', 'other_titles', 'connect', 'add_time', 'user', 'coords', 'images', 'level']
 
     # Отладка - проверка какое поле вызывает ошибку
-    def validate(self, data):
-        # Отладка типа данных
-        if not isinstance(data.get('user'), dict):
-            raise serializers.ValidationError(f"user: Ожидался dictionary, получен {type(data.get('user'))}")
-        if not isinstance(data.get('coords'), dict):
-            raise serializers.ValidationError(f"coords: Ожидался dictionary, получен {type(data.get('coords'))}")
-        if not isinstance(data.get('images'), list):
-            raise serializers.ValidationError(f"images: Ожидался list, получен {type(data.get('images'))}")
-        if not isinstance(data.get('level'), dict):
-            raise serializers.ValidationError(f"level: Ожидался dictionary, получен {type(data.get('level'))}")
-
-        return data
+    # def validate(self, data):
+    #     # Отладка типа данных
+    #     if not isinstance(data.get('user'), dict):
+    #         raise serializers.ValidationError(f"user: Ожидался dictionary, получен {type(data.get('user'))}")
+    #     if not isinstance(data.get('coords'), dict):
+    #         raise serializers.ValidationError(f"coords: Ожидался dictionary, получен {type(data.get('coords'))}")
+    #     if not isinstance(data.get('images'), list):
+    #         raise serializers.ValidationError(f"images: Ожидался list, получен {type(data.get('images'))}")
+    #     if not isinstance(data.get('level'), dict):
+    #         raise serializers.ValidationError(f"level: Ожидался dictionary, получен {type(data.get('level'))}")
+    #
+    #     return data
 
     def create(self, validated_data):
         user_data = validated_data.pop('user')

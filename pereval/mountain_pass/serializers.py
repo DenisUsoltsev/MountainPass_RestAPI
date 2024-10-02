@@ -15,10 +15,19 @@ class CoordsSerializer(serializers.ModelSerializer):
 
 
 class PerevalImageSerializer(serializers.ModelSerializer):
+    data = serializers.CharField(write_only=True)
+
     class Meta:
         model = PerevalImage
         fields = ['data', 'title']
 
 
 class PerevalAddedSerializer(serializers.ModelSerializer):
-    pass
+    user = UserSerializer()
+    coords = CoordsSerializer()
+    images = PerevalImageSerializer(many=True)
+    level = serializers.DictField(write_only=True)
+
+    class Meta:
+        model = PerevalAdded
+        fields = ['beauty_title', 'title', 'other_titles', 'connect', 'add_time', 'user', 'coords', 'images', 'level']

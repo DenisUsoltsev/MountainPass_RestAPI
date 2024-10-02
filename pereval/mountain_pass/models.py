@@ -9,10 +9,12 @@ class User(models.Model):
     name = models.CharField(max_length=255, verbose_name='Имя')
     otc = models.CharField(max_length=255, blank=True, null=True, verbose_name='Отчество')
 
+    # регулярное выражение допускает формат телефона с международным кодом, включая пробелы,
+    # дефисы, точки, а также скобки вокруг кода региона.
     check_phone = RegexValidator(
-        regex=r'^\+?1?\d{9,15}$',
-        message="Номер телефона должен быть введён в следующем формате: '+78009999999'. "
-                "Допускается количество цифр не более 15.")
+        regex=r'^\+?(\d{1,3})?[-.\s]?\(?\d{1,3}\)?[-.\s]?\d{1,3}[-.\s]?\d{2,3}[-.\s]?\d{2,3}$',
+        message="Номер телефона должен быть введён в корректном формате."
+    )
 
     phone = models.CharField(
         validators=[check_phone],
@@ -109,6 +111,7 @@ class PerevalImage(models.Model):
                                 related_name='pereval_images', verbose_name='Изображения')
     date_added = models.DateTimeField(auto_now_add=True)
     img_path = models.ImageField(upload_to='pereval_images/%Y/%m/%d/')
+    title = models.CharField(max_length=255, verbose_name='Название изображения')
 
     class Meta:
         verbose_name = "Изображение"

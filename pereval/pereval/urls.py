@@ -23,7 +23,7 @@ from mountain_pass.views import SubmitDataView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', SubmitDataView.as_view(), name='submit_data'),
+    path('api/v1/submitData', SubmitDataView.as_view(), name='submit_data'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

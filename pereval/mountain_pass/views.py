@@ -37,7 +37,7 @@ class PerevalCreateView(CreateAPIView):
 
 class PerevalDetailView(RetrieveAPIView):
     queryset = PerevalAdded.objects.all()
-    serializer_class = PerevalAddedSerializer
+    serializer_class = PerevalDetailSerializer
 
     def get(self, request, *args, **kwargs):
         pereval = self.get_object()  # Используем наш переопределенный метод

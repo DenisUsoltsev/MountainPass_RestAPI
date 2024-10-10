@@ -116,3 +116,26 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
             PerevalImage.objects.create(pereval=pereval_added, data=image_data['data'], title=image_data['title'])
 
         return pereval_added
+
+
+class PerevalDetailSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
+    coords = CoordsSerializer()
+    level = LevelSerializer()
+    # Используем source='pereval_images' для получения связанных изображений
+    images = PerevalImageSerializer(source='pereval_images', many=True)
+
+    class Meta:
+        model = PerevalAdded
+        fields = [
+            'beauty_title',
+            'title',
+            'other_titles',
+            'connect',
+            'add_time',
+            'user',
+            'coords',
+            'level',
+            'images',
+            'status'  # Также добавим статус модерации
+        ]

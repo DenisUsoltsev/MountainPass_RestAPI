@@ -117,6 +117,27 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
 
         return pereval_added
 
+    def update(self, pereval, validated_data):
+        coords_data = validated_data.pop('coords', None)
+        level_data = validated_data.pop('level', None)
+        images_data = validated_data.pop('images', None)
+
+        pereval.beauty_title = validated_data.get('beauty_title', pereval.beauty_title)
+        pereval.title = validated_data.get('title', pereval.title)
+        pereval.other_titles = validated_data.get('other_titles', pereval.other_titles)
+        pereval.connect = validated_data.get('connect', pereval.connect)
+
+        CoordsSerializer().update(pereval.coords, coords_data)
+        LevelSerializer().update(pereval.level, level_data)
+
+        for image_data in images_data:
+            image_id = image_data.get('id', None)
+            if image_id:
+                image_pereval = PerevalImage.objects.get(id=image_id)
+                PerevalImageSerializer().update(image_pereval, image_data)
+            else:
+                PerevalImage.objects.create(pereval=pereval, **image_data)
+
 
 class PerevalDetailSerializer(serializers.ModelSerializer):
     user = UserSerializer()

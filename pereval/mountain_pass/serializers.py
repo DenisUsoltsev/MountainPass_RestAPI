@@ -47,7 +47,7 @@ class PerevalImageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PerevalImage
-        fields = ['data', 'title']
+        fields = ['id', 'data', 'title']        # Добавьте поле id для удаления
 
     def to_representation(self, img_data):
         # Здесь мы определяем, как будет выглядеть объект при сериализации
@@ -61,6 +61,8 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
     coords = CoordsSerializer()
     level = LevelSerializer()
     images = PerevalImageSerializer(many=True)
+    images_to_delete = serializers.ListField(
+        child=serializers.IntegerField(), write_only=True, required=False)  # Вспомогательное поле
 
     class Meta:
         model = PerevalAdded
@@ -75,6 +77,7 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
             'coords',
             'level',
             'images',
+            'images_to_delete',         # Поле для удаления изображений по идентификатору
         ]
 
     # Отладка - проверка какое поле вызывает ошибку
@@ -143,6 +146,16 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
                 PerevalImageSerializer().update(image_pereval, image_data)
             else:
                 PerevalImage.objects.create(pereval=pereval, **image_data)
+
+        # Удаление изображений, если указаны идентификаторы
+        images_to_delete = validated_data.pop('images_to_delete', [])
+        if images_to_delete:
+            for image_id in images_to_delete:
+                try:
+                    image = PerevalImage.objects.get(id=image_id)
+                    image.delete()
+                except PerevalImage.DoesNotExist:
+                    continue  # Игнорируем, если изображение не найдено
 
         pereval.save()  # Сохраняем изменения в PerevalAdded
         return pereval

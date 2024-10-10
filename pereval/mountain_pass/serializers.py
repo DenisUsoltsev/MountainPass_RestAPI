@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Coords, PerevalAdded, PerevalImage
+from .models import User, Coords, Level, PerevalAdded, PerevalImage
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -36,6 +36,12 @@ class CoordsSerializer(serializers.ModelSerializer):
         fields = ['latitude', 'longitude', 'height']
 
 
+class LevelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Level
+        fields = ['winter', 'summer', 'autumn', 'spring']
+
+
 class PerevalImageSerializer(serializers.ModelSerializer):
     data = serializers.CharField(write_only=True)
 
@@ -47,13 +53,23 @@ class PerevalImageSerializer(serializers.ModelSerializer):
 class PerevalAddedSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     coords = CoordsSerializer()
+    level = LevelSerializer()
     images = PerevalImageSerializer(many=True)
-    level = serializers.DictField(write_only=True)
 
     class Meta:
         model = PerevalAdded
         # fields = '__all__'
-        fields = ['beauty_title', 'title', 'other_titles', 'connect', 'add_time', 'user', 'coords', 'images', 'level']
+        fields = [
+            'beauty_title',
+            'title',
+            'other_titles',
+            'connect',
+            'add_time',
+            'user',
+            'coords',
+            'level',
+            'images',
+        ]
 
     # Отладка - проверка какое поле вызывает ошибку
     # def validate(self, data):
@@ -89,19 +105,14 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
         # Добавляем координаты
         coords = Coords.objects.create(**coords_data)
 
-        # Добавление уровней сложности
-        validated_data.update({
-            'winter': level_data.get('winter', ''),
-            'summer': level_data.get('summer', ''),
-            'autumn': level_data.get('autumn', ''),
-            'spring': level_data.get('spring', ''),
-        })
+        # Добавляем уровни сложности
+        level = Level.objects.create(**level_data)
 
-        # Добавление записи Перевала
-        pereval_added = PerevalAdded.objects.create(user=user, coords=coords, **validated_data)
+         # Добавление записи Перевала
+        pereval_added = PerevalAdded.objects.create(user=user, coords=coords, level=level, **validated_data)
 
         # Обработка изображений
         for image_data in images_data:
-            PerevalImage.objects.create(pereval=pereval_added, img_path=image_data['data'], title=image_data['title'])
+            PerevalImage.objects.create(pereval=pereval_added, data=image_data['data'], title=image_data['title'])
 
         return pereval_added

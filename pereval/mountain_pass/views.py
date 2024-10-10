@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.generics import CreateAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import CreateAPIView, ListAPIView, RetrieveUpdateAPIView
 from rest_framework.views import APIView
 
 from .models import PerevalAdded
@@ -100,4 +100,33 @@ class PerevalDetailUpdateView(RetrieveUpdateAPIView):
         return Response({
             "state": 1,
             "message": "Запись успешно отредактирована."
+        }, status=status.HTTP_200_OK)
+
+
+# Обработка GET-запроса для получения записи (в данном случае по email)
+class PerevalListByEmailView(ListAPIView):
+    serializer_class = PerevalDetailSerializer
+
+    def get_queryset(self):
+        email = self.request.query_params.get('user__email', None)  # Получаем email из параметров запроса
+        if email:
+            return PerevalAdded.objects.filter(user__email=email)
+        return PerevalAdded.objects.none()  # Возвращаем пустой queryset, если email не указан
+
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+
+        # Проверяем, найден ли хотя бы один объект
+        if not queryset.exists():
+            return Response({
+                "status": 404,
+                "message": "Email не найден или записи отсутствуют",
+                "data": []
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({
+            "status": 200,
+            "message": "успех",
+            "data": serializer.data
         }, status=status.HTTP_200_OK)

@@ -50,7 +50,7 @@ class Coords(models.Model):
         return f"{self.latitude}, {self.longitude}, {self.height}"
 
 
-class PerevalAdded(models.Model):
+class Level(models.Model):
     CHOICE_LEVEL = [
         ('', ''),
         ('1А', '1А'),
@@ -61,6 +61,23 @@ class PerevalAdded(models.Model):
         ('3Б', '3Б'),
     ]
 
+    winter = models.CharField(max_length=2, choices=CHOICE_LEVEL, default='',
+                              blank=True, null=True, verbose_name='Зима')
+    summer = models.CharField(max_length=2, choices=CHOICE_LEVEL, default='',
+                              blank=True, null=True, verbose_name='Лето')
+    autumn = models.CharField(max_length=2, choices=CHOICE_LEVEL, default='',
+                              blank=True, null=True, verbose_name='Осень')
+    spring = models.CharField(max_length=2, choices=CHOICE_LEVEL, default='',
+                              blank=True, null=True, verbose_name='Весна')
+
+    class Meta:
+        verbose_name = "Уровень сложности"
+        verbose_name_plural = "Уровни сложности"
+
+    def __str__(self):
+        return f'{self.winter}, {self.summer}, {self.autumn}, {self.spring}'
+
+class PerevalAdded(models.Model):
     CHOICE_STATUS = [
         ("new", 'новый'),
         ("pending", 'модератор взял в работу'),
@@ -70,21 +87,13 @@ class PerevalAdded(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     coords = models.OneToOneField(Coords, on_delete=models.CASCADE)
+    level = models.ForeignKey(Level, on_delete=models.CASCADE, blank=True, null=True)
 
     beauty_title = models.CharField(max_length=255, blank=True, null=True)
     title = models.CharField(max_length=255)
     other_titles = models.CharField(max_length=255, blank=True, null=True)
     connect = models.TextField(blank=True, null=True)
     add_time = models.DateTimeField(auto_now_add=True)
-
-    winter = models.CharField(max_length=2, choices=CHOICE_LEVEL, default='',
-                              blank=True, null=True, verbose_name='Зима')
-    summer = models.CharField(max_length=2, choices=CHOICE_LEVEL, default='',
-                              blank=True, null=True, verbose_name='Лето')
-    autumn = models.CharField(max_length=2, choices=CHOICE_LEVEL, default='',
-                              blank=True, null=True, verbose_name='Осень')
-    spring = models.CharField(max_length=2, choices=CHOICE_LEVEL, default='',
-                              blank=True, null=True, verbose_name='Весна')
 
     status = models.CharField(max_length=30, choices=CHOICE_STATUS, default="new")
 
@@ -110,7 +119,7 @@ class PerevalImage(models.Model):
     pereval = models.ForeignKey(PerevalAdded, on_delete=models.CASCADE,
                                 related_name='pereval_images', verbose_name='Изображения')
     date_added = models.DateTimeField(auto_now_add=True)
-    img_path = models.ImageField(upload_to='pereval_images/%Y/%m/%d/')
+    data = models.ImageField(upload_to='pereval_images/%Y/%m/%d/')
     title = models.CharField(max_length=255, verbose_name='Название изображения')
 
     class Meta:

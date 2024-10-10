@@ -49,6 +49,12 @@ class PerevalImageSerializer(serializers.ModelSerializer):
         model = PerevalImage
         fields = ['data', 'title']
 
+    def to_representation(self, img_data):
+        # Здесь мы определяем, как будет выглядеть объект при сериализации
+        representation = super().to_representation(img_data)
+        representation['data'] = img_data.data.url  # Получаем URL для изображения
+        return representation
+
 
 class PerevalAddedSerializer(serializers.ModelSerializer):
     user = UserSerializer()
@@ -137,6 +143,9 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
                 PerevalImageSerializer().update(image_pereval, image_data)
             else:
                 PerevalImage.objects.create(pereval=pereval, **image_data)
+
+        pereval.save()  # Сохраняем изменения в PerevalAdded
+        return pereval
 
 
 class PerevalDetailSerializer(serializers.ModelSerializer):

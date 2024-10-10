@@ -19,11 +19,12 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path
 
-from mountain_pass.views import SubmitDataView
+from mountain_pass.views import SubmitDataView, PerevalDetailView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/submitData', SubmitDataView.as_view(), name='submit_data'),
+    path('api/v1/submitData/<int:pk>', PerevalDetailView.as_view(), name='pereval_detail'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

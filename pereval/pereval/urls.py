@@ -19,12 +19,19 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path
 
-from mountain_pass.views import SubmitDataView, PerevalDetailUpdateView, PerevalListByEmailView
+from mountain_pass.views import PerevalCreateView, PerevalDetailUpdateView, PerevalListByEmailView, index
 
 urlpatterns = [
+    path('', index, name='home'),  # Главная страница
     path('admin/', admin.site.urls),
-    path('api/v1/submitData', SubmitDataView.as_view(), name='submit_data'),
+
+    # POST: создание записи
+    path('api/v1/submitData', PerevalCreateView.as_view(), name='submit_data'),
+
+    # GET: получение записи по id; # PATCH: редактирование записи по id
     path('api/v1/submitData/<int:id>', PerevalDetailUpdateView.as_view(), name='pereval_detail_update'),
+
+    # GET: получение записей по email пользователя (...submitData/?user__email=<email>)
     path('api/v1/submitData/', PerevalListByEmailView.as_view(), name='submit_data_by_email'),
 ]
 

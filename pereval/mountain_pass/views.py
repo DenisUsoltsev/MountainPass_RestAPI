@@ -130,3 +130,8 @@ class PerevalListByEmailView(ListAPIView):
             "message": "успех",
             "data": serializer.data
         }, status=status.HTTP_200_OK)
+
+
+# Главная страница
+def index(request):
+    return render(request, 'index.html')

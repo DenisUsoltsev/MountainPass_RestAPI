@@ -14,5 +14,12 @@
         <li><a href="{% url 'submit_data' %}">Отправка данных перевала</a> - отправить данные о перевале.</li>
         <li><a href="{% url 'pereval_detail_update' id=1 %}">Просмотр перевала по ID</a> - просмотр и редактирование данных перевала по ID.</li>
     </ul>
+
+    <h2>Поиск перевалов по email</h2>
+    <form action="{% url 'submit_data_by_email' %}" method="get">
+        <label for="email">Введите email:</label>
+        <input type="email" id="email" name="user__email" required>
+        <button type="submit">Поиск</button>
+    </form>
 </body>
 </html>

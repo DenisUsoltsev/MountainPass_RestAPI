@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Coords, PerevalAdded, PerevalImage
+from .models import User, Coords, Level, PerevalAdded, PerevalImage
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -36,24 +36,49 @@ class CoordsSerializer(serializers.ModelSerializer):
         fields = ['latitude', 'longitude', 'height']
 
 
+class LevelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Level
+        fields = ['winter', 'summer', 'autumn', 'spring']
+
+
 class PerevalImageSerializer(serializers.ModelSerializer):
     data = serializers.CharField(write_only=True)
 
     class Meta:
         model = PerevalImage
-        fields = ['data', 'title']
+        fields = ['id', 'data', 'title']        # Добавьте поле id для удаления
+
+    def to_representation(self, img_data):
+        # Здесь мы определяем, как будет выглядеть объект при сериализации
+        representation = super().to_representation(img_data)
+        representation['data'] = img_data.data.url  # Получаем URL для изображения
+        return representation
 
 
 class PerevalAddedSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     coords = CoordsSerializer()
+    level = LevelSerializer()
     images = PerevalImageSerializer(many=True)
-    level = serializers.DictField(write_only=True)
+    images_to_delete = serializers.ListField(
+        child=serializers.IntegerField(), write_only=True, required=False)  # Вспомогательное поле
 
     class Meta:
         model = PerevalAdded
         # fields = '__all__'
-        fields = ['beauty_title', 'title', 'other_titles', 'connect', 'add_time', 'user', 'coords', 'images', 'level']
+        fields = [
+            'beauty_title',
+            'title',
+            'other_titles',
+            'connect',
+            'add_time',
+            'user',
+            'coords',
+            'level',
+            'images',
+            'images_to_delete',         # Поле для удаления изображений по идентификатору
+        ]
 
     # Отладка - проверка какое поле вызывает ошибку
     # def validate(self, data):
@@ -89,19 +114,71 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
         # Добавляем координаты
         coords = Coords.objects.create(**coords_data)
 
-        # Добавление уровней сложности
-        validated_data.update({
-            'winter': level_data.get('winter', ''),
-            'summer': level_data.get('summer', ''),
-            'autumn': level_data.get('autumn', ''),
-            'spring': level_data.get('spring', ''),
-        })
+        # Добавляем уровни сложности
+        level = Level.objects.create(**level_data)
 
-        # Добавление записи Перевала
-        pereval_added = PerevalAdded.objects.create(user=user, coords=coords, **validated_data)
+         # Добавление записи Перевала
+        pereval_added = PerevalAdded.objects.create(user=user, coords=coords, level=level, **validated_data)
 
         # Обработка изображений
         for image_data in images_data:
-            PerevalImage.objects.create(pereval=pereval_added, img_path=image_data['data'], title=image_data['title'])
+            PerevalImage.objects.create(pereval=pereval_added, data=image_data['data'], title=image_data['title'])
 
         return pereval_added
+
+    def update(self, pereval, validated_data):
+        coords_data = validated_data.pop('coords', None)
+        level_data = validated_data.pop('level', None)
+        images_data = validated_data.pop('images', None)
+
+        pereval.beauty_title = validated_data.get('beauty_title', pereval.beauty_title)
+        pereval.title = validated_data.get('title', pereval.title)
+        pereval.other_titles = validated_data.get('other_titles', pereval.other_titles)
+        pereval.connect = validated_data.get('connect', pereval.connect)
+
+        CoordsSerializer().update(pereval.coords, coords_data)
+        LevelSerializer().update(pereval.level, level_data)
+
+        for image_data in images_data:
+            image_id = image_data.get('id', None)
+            if image_id:
+                image_pereval = PerevalImage.objects.get(id=image_id)
+                PerevalImageSerializer().update(image_pereval, image_data)
+            else:
+                PerevalImage.objects.create(pereval=pereval, **image_data)
+
+        # Удаление изображений, если указаны идентификаторы
+        images_to_delete = validated_data.pop('images_to_delete', [])
+        if images_to_delete:
+            for image_id in images_to_delete:
+                try:
+                    image = PerevalImage.objects.get(id=image_id)
+                    image.delete()
+                except PerevalImage.DoesNotExist:
+                    continue  # Игнорируем, если изображение не найдено
+
+        pereval.save()  # Сохраняем изменения в PerevalAdded
+        return pereval
+
+
+class PerevalDetailSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
+    coords = CoordsSerializer()
+    level = LevelSerializer()
+    # Используем source='pereval_images' для получения связанных изображений
+    images = PerevalImageSerializer(source='pereval_images', many=True)
+
+    class Meta:
+        model = PerevalAdded
+        fields = [
+            'beauty_title',
+            'title',
+            'other_titles',
+            'connect',
+            'add_time',
+            'user',
+            'coords',
+            'level',
+            'images',
+            'status'  # Также добавим статус модерации
+        ]
